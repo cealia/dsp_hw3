@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
             //cout<<line<<endl;
             string out;
             if(argc==5){
-                cout<<"Use bigram"<<endl;
+                //cout<<"Use bigram"<<endl;
                 out = disambigSentence(line, mapping);
             } 
             else out = disambigSentence3(line, mapping);

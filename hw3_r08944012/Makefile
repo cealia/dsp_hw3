@@ -1,13 +1,13 @@
 SRIPATH ?= /root/srilm-1.5.10
 MACHINE_TYPE ?= i686-m64
-#INC_PATH ?= inc
-#SRC_PATH ?= src
+INC_PATH ?= inc
+SRC_PATH ?= src
 
 CXX = g++
 CXXFLAGS = -O2 -I$(SRIPATH)/include #-I$(INC_PATH)
 vpath lib%.a $(SRIPATH)/lib/$(MACHINE_TYPE)
-#vpath %.c $(SRC_PATH)
-#vpath %.cpp $(SRC_PATH)
+vpath %.c $(SRC_PATH)
+vpath %.cpp $(SRC_PATH)
 
 TARGET = mydisambig hw3src
 SRC = mydisambig.cpp hw3src.cpp
@@ -25,8 +25,8 @@ $(TARGET): $(OBJ) -loolm -ldstruct -lmisc
 all: $(TARGET)
 
 map:
-	@#TODO
-	@#python3 mapping.py $(FROM) $(TO)
+	@echo "Create ZhuYin-Big5.map"
+	@python3 mapping.py $(FROM) $(TO)
 
 clean:
 	$(RM) $(OBJ) $(TARGET)
