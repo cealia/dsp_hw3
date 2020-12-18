@@ -25,6 +25,7 @@ Z2Candidates::Z2Candidates(const string &path){
             //cout<<_map[q].size()<<" ";
         }
         file.close();
+        _map["</s>"] = vector<string>(1,"</s>");
     }
 }
 Z2Candidates::~Z2Candidates(){}

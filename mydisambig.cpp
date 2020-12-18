@@ -47,8 +47,8 @@ double getTrigramProb(const string &w1, const string &w2, const string &w3)
     return lm.wordProb( wid3, context );
 }
 string disambigSentence3(const string &sent, Z2Candidates &mapping){
-    vector<vector<vector<double>>> prob(sent.length());
-    vector<vector<vector<int>>> path(sent.length());
+    vector<vector<vector<double>>> prob(sent.length()/2);
+    vector<vector<vector<int>>> path(sent.length()/2);
     vector<string> candidates;
     vector<string> p_candidates;
     vector<string> pp_candidates;
@@ -81,27 +81,22 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
     }
     pp_candidates = p_candidates;
     p_candidates = candidates;
-//     cout<<p_candidates.size()<<" "<<pp_candidates.size();
-//     return "a";
     //dp
     for(int s=2;s<sent.length()/2;s++){
-        cout<<s<<":";
         candidates = mapping.readcands(sent.substr(s*2,2));
-        //cout<<candidates.size()<<" ";
-        //cout<<p_candidates.size()<<" ";
-        //cout<<pp_candidates.size()<<" "<<endl;
         //prob[s].push_back(vector<vector<double>>(candidates.size()));
         prob[s].resize(candidates.size());
         //path[s].push_back(vector<vector<int>>(candidates.size()));
         path[s].resize(candidates.size());
         for(int i=0;i<candidates.size();i++){
-            //cout<<i<<" ";
-            for(int j=0;j<p_candidates.size();j++){
-                //cout<<j;
+            for(int j=0;j<p_candidates.size();j++){//[i][j]
                 double _m_p = -1/0.0;//-inf
-                int _m_i = -1;
+                int _m_i = 0;
                 for(int k=0;k<pp_candidates.size();k++){
-                    ngram_prob = 0;//getTrigramProb(pp_candidates[k],p_candidates[j],candidates[i])+prob[s-1][j][k];
+                    //cout<<i<<" "<<j<<" "<<k<<" "<<prob[s-1][j][k]<<endl;
+                    //double temp = getTrigramProb(pp_candidates[k],p_candidates[j],candidates[i]) + prob[s-1][j][k];
+                    ngram_prob = getTrigramProb(pp_candidates[k],p_candidates[j],candidates[i]) + prob[s-1][j][k];
+                    //if(s==3) cout<<i<<" "<<j<<" "<<k<<" "<<ngram_prob<<endl;
                     if(ngram_prob>_m_p){
                         _m_p = ngram_prob;
                         _m_i = k;
@@ -110,16 +105,24 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
                 if(_m_i==-1) cout<<_m_p<<" "<<_m_i;
                 prob[s][i].push_back(_m_p);//prob[s][i][j]
                 path[s][i].push_back(_m_i);
+                //cout<<_m_i<<" "<<_m_p<<endl;
             }
-            //cout<<endl;
         }
-        //cout<<endl<<"--------------"<<endl;
+        //if(s==3) return "a";
         pp_candidates = p_candidates;
         p_candidates = candidates;
     }
-    //return "a";
+//     for(int i=0;i<path.size();i++){
+//         cout<<i<<"----------------------"<<endl;
+//         for(int j=0;j<path[i].size();j++){
+//             for(int k=0;k<path[i][j].size();k++){
+//                 cout<<path[i][j][k]<<" ";
+//             }
+//             cout<<endl;
+//         }
+//     }
     //backtracking
-    double _mval=-1000000;
+    double _mval=-1/0.0;
     int ii,jj,temp;
     int si = (sent.length()/2)-1;
     for(int i=0;i<prob[si].size();i++){
@@ -127,31 +130,24 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
             //cout<<i<<" "<<j<<endl;
             if(prob[si][i][j]>_mval){
                 _mval = prob[si][i][j];
-                //kk = path[si][i][j];//==k
-                jj = j;
                 ii = i;
+                jj = j;
             }
         }
     }
     string out = "</s>";
     out.insert(0," ");
     out.insert(0,candidates[ii]);
-    //cout<<si<<" "<<ii<<" "<<jj<<endl;
     temp = path[si][ii][jj];
-    //return out;
     for(int s=si-1;s>0;s--){
-        //cout<<s;
         ii = jj;
         jj = temp;
-        //cout<<ii<<" "<<jj<<endl;
-        //break;
         candidates = mapping.readcands(sent.substr(s*2,2));
-        //cout<<candidates[ii];
         out.insert(0," ");
         out.insert(0,candidates[ii]);
-        temp = path[si][ii][jj];
+        temp = path[s][ii][jj];
+        //cout<<temp<<" ";
     }
-    //return out;
     candidates = mapping.readcands(sent.substr(0,2));
     out.insert(0," ");
     out.insert(0,candidates[jj]);
@@ -162,26 +158,13 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
 
 
 string disambigSentence(const string &sent, Z2Candidates &mapping){//pass by reference
-    vector<vector<double>> prob(sent.length());
-    vector<vector<int>> path(sent.length()); //vocab of max
+    vector<vector<double>> prob(sent.length()+1);
+    vector<vector<int>> path(sent.length()+1); //vocab of max
     vector<string> candidates;
     vector<string> pre_candidates;
     double ngram_p = 0;
     double pZero = -1/0.0;//-inf
-    //cout<<pZero;
-//     VocabIndex context[] = { voc.getIndex("她")};
-//     double test = lm.wordProb( voc.getIndex("說"), context);
-//     cout<<test;
-    //return "a";
     
-//     candidates = mapping.readcands(sent.substr(0,2));
-//     for(int i=0;i<candidates.size();i++){
-//         cout<<candidates[i];
-//     }
-//     cout<<endl;
-//     cout<<sent.substr(0,2);
-//     cout<<sent.length();
-//     return "a";
     //init
     candidates = mapping.readcands(sent.substr(0,1*2));
     for(int i=0;i<candidates.size();i++){
@@ -193,10 +176,11 @@ string disambigSentence(const string &sent, Z2Candidates &mapping){//pass by ref
     }
     pre_candidates = candidates;
     //dp
-    for(int s=1;s<sent.length()/2;s++){
+    for(int s=1;s<(sent.length()/2)+1;s++){
         //cout<<s;
         //cout<<sent.substr(s*2,2)<<endl;
-        candidates = mapping.readcands(sent.substr(s*2,2));
+        if(s==sent.length()/2) candidates = mapping.readcands("</s>");
+        else candidates = mapping.readcands(sent.substr(s*2,2));
         //cout<<candidates.size()<<endl;
         for(int i=0;i<candidates.size();i++){
             double max_inc = pZero;
@@ -220,26 +204,27 @@ string disambigSentence(const string &sent, Z2Candidates &mapping){//pass by ref
     double _max = -10000000;
     int m_i = -1;
     for(int i=0;i<pre_candidates.size();i++){
-        if(prob[(sent.length()/2)-1][i]>_max){
-            _max = prob[(sent.length()/2)-1][i];
+        if(prob[(sent.length()/2)][i]>_max){
+            _max = prob[(sent.length()/2)][i];
             m_i = i;
         }
     }
     //cout<<_max<<" "<<m_i;
     //return "a";
-    string out = "</s>";
-    int s = (sent.length()/2)-1;
+    string out = "";
+    int s = (sent.length()/2);
     while(1){
-        candidates = mapping.readcands(sent.substr(s*2,2));
+        if(s==(sent.length()/2)) candidates = mapping.readcands("</s>");
+        else candidates = mapping.readcands(sent.substr(s*2,2));
         //cout<<candidates[m_i]<<" ";
-        out.insert(0," ");
+        if(s!=(sent.length()/2)) out.insert(0," ");
         out.insert(0,candidates[m_i]);
         if(path[s][m_i]==-1) break;
         m_i = path[s][m_i];
         s--;
     }
     out.insert(0,"<s> ");
-    //reverse(out.begin(), out.end());
+    //reverse(out.begin(), out.end());//ruin <s>,</s>
     return out;
 }
 
@@ -262,20 +247,20 @@ int main(int argc, char *argv[])
         lm.read(lmFile);
         lmFile.close();
     }
-    
     Z2Candidates mapping("ZhuYin-Big5.map");
-    ifstream file("test_data/seg8.txt");
-    FILE *gt = open_or_die("test_data/out_8", "r");
+    ifstream file("test_data/seg3.txt");
+    FILE *gt = open_or_die("test_data/out3_3", "r");
     char g[MAX_LEN*2];
     if (file.is_open()) {
         string line;
         while (getline(file, line) && fscanf(gt, "%[^\n]%*c", g)==1) {
             line.erase( remove( line.begin(), line.end(), ' ' ), line.end() );
-            line.append("補");
-            cout<<line<<endl;
+            //line = "馬ㄌ西亞ㄏ裔歌ㄕ梁靜茹黑皮ㄧ長裙登ㄔ獻唱ㄘ虹ㄩ氣無ㄊ件為你";
+            //line = "還ㄗㄒ場教大ㄐ用馬來西ㄧ講馬來文ㄉ新ㄋ快ㄩ";
+            //cout<<line<<endl;
             string out;
-            out = disambigSentence(line, mapping);
-            cout<<out<<endl;
+            out = disambigSentence3(line, mapping);
+            //cout<<out<<endl;
             //cout<<g<<endl;
             if(strcmp(g,out.c_str())!=0){
                 cout<<g<<endl;
@@ -284,6 +269,8 @@ int main(int argc, char *argv[])
             }
         }
         file.close();
+        //<s> 馬 來 西 亞 華 裔 歌 手 梁 靜 茹 黑 皮 揚 長 裙 登 場 獻 唱 彩 虹 與 氣 無 條 件 為 你 </s>
+        //<s> 還 在 現 場 教 大 家 用 馬 來 西 演 講 馬 來 文 的 新 年 快 樂 </s>     
     }
     
     return 0;
