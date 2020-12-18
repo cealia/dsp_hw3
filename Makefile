@@ -1,5 +1,5 @@
-SRIPATH = /root/srilm-1.5.10
-MACHINE_TYPE = i686-m64
+SRIPATH ?= /root/srilm-1.5.10
+MACHINE_TYPE ?= i686-m64
 #INC_PATH ?= inc
 #SRC_PATH ?= src
 

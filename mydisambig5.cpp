@@ -47,8 +47,8 @@ double getTrigramProb(const string &w1, const string &w2, const string &w3)
     return lm.wordProb( wid3, context );
 }
 string disambigSentence3(const string &sent, Z2Candidates &mapping){
-    vector<vector<vector<double>>> prob(sent.length()/2);
-    vector<vector<vector<int>>> path(sent.length()/2);
+    vector<vector<vector<double>>> prob((sent.length()/2)+1);
+    vector<vector<vector<int>>> path((sent.length()/2)+1);
     vector<string> candidates;
     vector<string> p_candidates;
     vector<string> pp_candidates;
@@ -74,7 +74,7 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
     for(int i=0;i<candidates.size();i++){
         for(int j=0;j<p_candidates.size();j++){
             //ngram_prob = getBigramProb(p_candidates[j],candidates[i]) + getBigramProb("<s>", p_candidates[j]);
-            ngram_prob = getTrigramProb("<s>",p_candidates[j],candidates[i]);
+            ngram_prob = getBigramProb("<s>", p_candidates[j])+getTrigramProb("<s>",p_candidates[j],candidates[i]);
             prob[1][i].push_back(ngram_prob);
             path[1][i].push_back(-1);
         }
@@ -82,8 +82,9 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
     pp_candidates = p_candidates;
     p_candidates = candidates;
     //dp
-    for(int s=2;s<sent.length()/2;s++){
-        candidates = mapping.readcands(sent.substr(s*2,2));
+    for(int s=2;s<(sent.length()/2)+1;s++){
+        if(s==sent.length()/2) candidates = mapping.readcands("</s>");
+        else candidates = mapping.readcands(sent.substr(s*2,2));
         //prob[s].push_back(vector<vector<double>>(candidates.size()));
         prob[s].resize(candidates.size());
         //path[s].push_back(vector<vector<int>>(candidates.size()));
@@ -93,10 +94,7 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
                 double _m_p = -1/0.0;//-inf
                 int _m_i = 0;
                 for(int k=0;k<pp_candidates.size();k++){
-                    //cout<<i<<" "<<j<<" "<<k<<" "<<prob[s-1][j][k]<<endl;
-                    //double temp = getTrigramProb(pp_candidates[k],p_candidates[j],candidates[i]) + prob[s-1][j][k];
                     ngram_prob = getTrigramProb(pp_candidates[k],p_candidates[j],candidates[i]) + prob[s-1][j][k];
-                    //if(s==3) cout<<i<<" "<<j<<" "<<k<<" "<<ngram_prob<<endl;
                     if(ngram_prob>_m_p){
                         _m_p = ngram_prob;
                         _m_i = k;
@@ -105,26 +103,15 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
                 if(_m_i==-1) cout<<_m_p<<" "<<_m_i;
                 prob[s][i].push_back(_m_p);//prob[s][i][j]
                 path[s][i].push_back(_m_i);
-                //cout<<_m_i<<" "<<_m_p<<endl;
             }
         }
-        //if(s==3) return "a";
         pp_candidates = p_candidates;
         p_candidates = candidates;
     }
-//     for(int i=0;i<path.size();i++){
-//         cout<<i<<"----------------------"<<endl;
-//         for(int j=0;j<path[i].size();j++){
-//             for(int k=0;k<path[i][j].size();k++){
-//                 cout<<path[i][j][k]<<" ";
-//             }
-//             cout<<endl;
-//         }
-//     }
     //backtracking
     double _mval=-1/0.0;
     int ii,jj,temp;
-    int si = (sent.length()/2)-1;
+    int si = (sent.length()/2);
     for(int i=0;i<prob[si].size();i++){
         for(int j=0;j<prob[si][i].size();j++){
             //cout<<i<<" "<<j<<endl;
@@ -136,8 +123,8 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
         }
     }
     string out = "</s>";
-    out.insert(0," ");
-    out.insert(0,candidates[ii]);
+    //out.insert(0," ");
+    //out.insert(0,candidates[ii]);
     temp = path[si][ii][jj];
     for(int s=si-1;s>0;s--){
         ii = jj;
@@ -149,6 +136,15 @@ string disambigSentence3(const string &sent, Z2Candidates &mapping){
         //cout<<temp<<" ";
     }
     candidates = mapping.readcands(sent.substr(0,2));
+//     _mval = -1/0.0;
+//     candidates = mapping.readcands(sent.substr(0,2));
+//     for(int i=0;i<candidates.size();i++){
+//         ngram_prob = getBigramProb("<s>", candidates[i]);
+//         if(ngram_prob>_mval){
+//             _mval = ngram_prob;
+//             jj = i;
+//         }
+//     }
     out.insert(0," ");
     out.insert(0,candidates[jj]);
     out.insert(0," ");
@@ -248,19 +244,17 @@ int main(int argc, char *argv[])
         lmFile.close();
     }
     Z2Candidates mapping("ZhuYin-Big5.map");
-    ifstream file("test_data/seg3.txt");
-    FILE *gt = open_or_die("test_data/out3_3", "r");
+    ifstream file("test_data/seg8.txt");
+    FILE *gt = open_or_die("test_data/out3_8", "r");
     char g[MAX_LEN*2];
     if (file.is_open()) {
         string line;
         while (getline(file, line) && fscanf(gt, "%[^\n]%*c", g)==1) {
             line.erase( remove( line.begin(), line.end(), ' ' ), line.end() );
-            //line = "馬ㄌ西亞ㄏ裔歌ㄕ梁靜茹黑皮ㄧ長裙登ㄔ獻唱ㄘ虹ㄩ氣無ㄊ件為你";
-            //line = "還ㄗㄒ場教大ㄐ用馬來西ㄧ講馬來文ㄉ新ㄋ快ㄩ";
             //cout<<line<<endl;
             string out;
             out = disambigSentence3(line, mapping);
-            //cout<<out<<endl;
+            cout<<out<<endl;
             //cout<<g<<endl;
             if(strcmp(g,out.c_str())!=0){
                 cout<<g<<endl;
@@ -268,11 +262,9 @@ int main(int argc, char *argv[])
                 cout<<"-------------"<<endl;
             }
         }
-        file.close();
-        //<s> 馬 來 西 亞 華 裔 歌 手 梁 靜 茹 黑 皮 揚 長 裙 登 場 獻 唱 彩 虹 與 氣 無 條 件 為 你 </s>
-        //<s> 還 在 現 場 教 大 家 用 馬 來 西 演 講 馬 來 文 的 新 年 快 樂 </s>     
+        file.close();   
     }
-    
+    cout<<"end"<<endl;
     return 0;
     
 }
